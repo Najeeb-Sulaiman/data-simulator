@@ -1,0 +1,6 @@
+pandas==3.0.1
+faker==40.8.0
+numpy==2.4.2
+pydantic==2.12.5
+psycopg2-binary==2.9.11
+tqdm==4.67.3
