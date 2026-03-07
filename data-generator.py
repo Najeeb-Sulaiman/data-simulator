@@ -5,6 +5,7 @@ import uuid
 import numpy as np
 import pandas as pd
 from faker import Faker
+from datetime import timedelta
 from config import Config
 
 
@@ -34,8 +35,8 @@ def suppliers(NUM_SUPPLIERS: int):
 # PRODUCTS
 def products(NUM_PRODUCTS: int, DATA_DIR: str):
     categories = [
-        "Electronics","Home","Groceries","Clothing",
-        "Beauty","Sports","Automotive","Toys"
+        "Electronics", "Home", "Groceries", "Clothing",
+        "Beauty", "Sports", "Automotive", "Toys"
         ]
 
     products = []
@@ -49,12 +50,12 @@ def products(NUM_PRODUCTS: int, DATA_DIR: str):
             "product_name": fake.word().capitalize(),
             "category": random.choice(categories),
             "brand": fake.company(),
-            "unit_price": round(random.uniform(5,500),2),
+            "unit_price": round(random.uniform(5, 500), 2),
             "supplier_id": supplier["supplier_id"]
         })
 
     products_df = pd.DataFrame(products)
-    products_df.to_csv(f"{DATA_DIR}/products.csv",index=False)
+    products_df.to_csv(f"{DATA_DIR}/products.csv", index=False)
 
     print("Products generated")
 
@@ -75,6 +76,56 @@ def store(NUM_STORES: int, DATA_DIR: str):
         })
 
     stores_df = pd.DataFrame(stores)
-    stores_df.to_csv(f"{DATA_DIR}/stores.csv",index=False)
+    stores_df.to_csv(f"{DATA_DIR}/stores.csv", index=False)
 
     print("Stores generated")
+
+
+# WAREHOUSES
+def warehouse(NUM_WAREHOUSES: int):
+    for i in range(NUM_WAREHOUSES):
+        warehouses = []
+        warehouses.append({
+            "warehouse_id": f"WH-{i:03d}",
+            "city": fake.city(),
+            "state": fake.state()
+        })
+
+    warehouse_df = pd.DataFrame(warehouses)
+    return warehouse_df
+
+
+# INVENTORY SNAPSHOTS
+def inventory(DAYS: int, DATA_DIR: str):
+    for d in range(DAYS):
+
+        snapshot_date = Config.START_DATE + timedelta(days=d)
+
+        rows = []
+
+        for wh in warehouses:
+
+            sampled_products = np.random.choice(
+                    products_df.product_id,
+                    size=2000)
+
+            for p in sampled_products:
+
+                qty = max(0, int(np.random.normal(200, 50)))
+
+                rows.append({
+                    "warehouse_id": wh["warehouse_id"],
+                    "product_id": p,
+                    "quantity_available": qty,
+                    "reorder_threshold": random.randint(20,80),
+                    "snapshot_date": snapshot_date.strftime("%Y-%m-%d")
+                })
+
+        df = pd.DataFrame(rows)
+
+        df.to_csv(
+            f"{DATA_DIR}/warehouse_inventory/inventory_{snapshot_date.date()}.csv",
+            index=False
+        )
+
+    print("Inventory snapshots generated")
