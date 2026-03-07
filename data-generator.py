@@ -29,12 +29,11 @@ def suppliers(NUM_SUPPLIERS: int):
             "country": fake.country()
         })
 
-    suppliers_df = pd.DataFrame(suppliers)
-    return suppliers_df
+    return suppliers
 
 
 # PRODUCTS
-def products(NUM_PRODUCTS: int, DATA_DIR: str):
+def products(NUM_PRODUCTS: int, DATA_DIR: str, suppliers: list):
     categories = [
         "Electronics", "Home", "Groceries", "Clothing",
         "Beauty", "Sports", "Automotive", "Toys"
@@ -59,6 +58,7 @@ def products(NUM_PRODUCTS: int, DATA_DIR: str):
     products_df.to_csv(f"{DATA_DIR}/products.csv", index=False)
 
     print("Products generated")
+    return products_df
 
 
 # STORES
@@ -72,14 +72,15 @@ def store(NUM_STORES: int, DATA_DIR: str):
             "store_name": fake.company(),
             "city": fake.city(),
             "state": fake.state(),
-            "region": random.choice(["West","East","South","Midwest"]),
-            "store_open_date": fake.date_between("-10y","-1y")
+            "region": random.choice(["West", "East", "South", "Midwest"]),
+            "store_open_date": fake.date_between("-10y", "-1y")
         })
 
     stores_df = pd.DataFrame(stores)
     stores_df.to_csv(f"{DATA_DIR}/stores.csv", index=False)
 
     print("Stores generated")
+    return stores_df
 
 
 # WAREHOUSES
@@ -97,14 +98,18 @@ def warehouse(NUM_WAREHOUSES: int):
 
 
 # INVENTORY SNAPSHOTS
-def inventory(DAYS: int, DATA_DIR: str, START_DATE:datetime):
+def inventory(DAYS: int,
+              DATA_DIR: str,
+              START_DATE: datetime,
+              products_df,
+              warehouse_df):
     for d in range(DAYS):
 
         snapshot_date = START_DATE + timedelta(days=d)
 
         rows = []
 
-        for wh in warehouses:
+        for wh in warehouse_df:
 
             sampled_products = np.random.choice(
                     products_df.product_id,
@@ -118,7 +123,7 @@ def inventory(DAYS: int, DATA_DIR: str, START_DATE:datetime):
                     "warehouse_id": wh["warehouse_id"],
                     "product_id": p,
                     "quantity_available": qty,
-                    "reorder_threshold": random.randint(20,80),
+                    "reorder_threshold": random.randint(20, 80),
                     "snapshot_date": snapshot_date.strftime("%Y-%m-%d")
                 })
 
@@ -136,7 +141,9 @@ def inventory(DAYS: int, DATA_DIR: str, START_DATE:datetime):
 def shipment(DAYS: int,
              MAX_SHIPMENTS_PER_DAY: int,
              DATA_DIR: str,
-             START_DATE: datetime):
+             START_DATE: datetime,
+             store_df,
+             warehouse_df):
 
     for d in range(DAYS):
 
@@ -147,23 +154,23 @@ def shipment(DAYS: int,
         for _ in tqdm(range(MAX_SHIPMENTS_PER_DAY)):
 
             product = random.choice(products)
-            store = random.choice(stores)
-            warehouse = random.choice(warehouses)
+            store = random.choice(store_df)
+            warehouse = random.choice(warehouse_df)
 
-            expected = shipment_date + timedelta(days=random.randint(1,5))
+            expected = shipment_date + timedelta(days=random.randint(1, 5))
 
-            actual = expected + timedelta(days=random.choice([0,0,0,1,2]))
+            actual = expected + timedelta(days=random.choice([0, 0, 0, 1, 2]))
 
             records.append({
                 "shipment_id": str(uuid.uuid4()),
                 "warehouse_id": warehouse["warehouse_id"],
                 "store_id": store["store_id"],
                 "product_id": product["product_id"],
-                "quantity_shipped": random.randint(5,200),
+                "quantity_shipped": random.randint(5, 200),
                 "shipment_date": shipment_date.isoformat(),
                 "expected_delivery_date": expected.isoformat(),
                 "actual_delivery_date": actual.isoformat(),
-                "carrier": random.choice(["FedEx","UPS","DHL","USPS"])
+                "carrier": random.choice(["FedEx", "UPS", "DHL", "USPS"])
             })
 
         with open(
@@ -171,6 +178,29 @@ def shipment(DAYS: int,
             "w"
         ) as f:
 
-            json.dump(records,f)
+            json.dump(records, f)
 
     print("Shipment logs generated")
+
+
+if __name__ == "__main__":
+    # Make directories if not exist
+    make_dir(Config.DATA_DIR)
+
+    # Generate suppliers
+    suppliers_df = suppliers(Config.NUM_SUPPLIERS)
+
+    # Generate products
+    products_df = products(Config.NUM_PRODUCTS, Config.DATA_DIR, suppliers_df)
+
+    # Generate Store
+    store_df = store(Config.NUM_STORES, Config.DATA_DIR)
+
+    # Generate Warehouse
+    warehouse_df = warehouse(Config.NUM_WAREHOUSES)
+
+    # Generate inventory
+    inventory(Config.DAYS, Config.DATA_DIR, Config.START_DATE, products_df, warehouse_df)
+
+    # Generate Shipments
+    shipment(Config.DAYS, Config.MAX_SHIPMENTS_PER_DAY, Config.DATA_DIR, Config.START_DATE, store_df, warehouse_df)
