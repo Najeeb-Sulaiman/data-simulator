@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 
+
 class Config(BaseModel):
     NUM_PRODUCTS = 5000
     NUM_STORES = 800
