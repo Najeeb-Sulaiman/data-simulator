@@ -5,7 +5,8 @@ import uuid
 import numpy as np
 import pandas as pd
 from faker import Faker
-from datetime import timedelta
+from datetime import datetime, timedelta
+from tqdm import tqdm
 from config import Config
 
 
@@ -96,10 +97,10 @@ def warehouse(NUM_WAREHOUSES: int):
 
 
 # INVENTORY SNAPSHOTS
-def inventory(DAYS: int, DATA_DIR: str):
+def inventory(DAYS: int, DATA_DIR: str, START_DATE:datetime):
     for d in range(DAYS):
 
-        snapshot_date = Config.START_DATE + timedelta(days=d)
+        snapshot_date = START_DATE + timedelta(days=d)
 
         rows = []
 
@@ -129,3 +130,47 @@ def inventory(DAYS: int, DATA_DIR: str):
         )
 
     print("Inventory snapshots generated")
+
+
+# SHIPMENTS
+def shipment(DAYS: int,
+             MAX_SHIPMENTS_PER_DAY: int,
+             DATA_DIR: str,
+             START_DATE: datetime):
+
+    for d in range(DAYS):
+
+        shipment_date = START_DATE + timedelta(days=d)
+
+        records = []
+
+        for _ in tqdm(range(MAX_SHIPMENTS_PER_DAY)):
+
+            product = random.choice(products)
+            store = random.choice(stores)
+            warehouse = random.choice(warehouses)
+
+            expected = shipment_date + timedelta(days=random.randint(1,5))
+
+            actual = expected + timedelta(days=random.choice([0,0,0,1,2]))
+
+            records.append({
+                "shipment_id": str(uuid.uuid4()),
+                "warehouse_id": warehouse["warehouse_id"],
+                "store_id": store["store_id"],
+                "product_id": product["product_id"],
+                "quantity_shipped": random.randint(5,200),
+                "shipment_date": shipment_date.isoformat(),
+                "expected_delivery_date": expected.isoformat(),
+                "actual_delivery_date": actual.isoformat(),
+                "carrier": random.choice(["FedEx","UPS","DHL","USPS"])
+            })
+
+        with open(
+            f"{DATA_DIR}/shipments/shipments_{shipment_date.date()}.json",
+            "w"
+        ) as f:
+
+            json.dump(records,f)
+
+    print("Shipment logs generated")
