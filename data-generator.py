@@ -11,6 +11,7 @@ from config import Config
 
 
 fake = Faker()
+config = Config()
 
 
 def make_dir(DATA_DIR):
@@ -185,22 +186,22 @@ def shipment(DAYS: int,
 
 if __name__ == "__main__":
     # Make directories if not exist
-    make_dir(Config.DATA_DIR)
+    make_dir(config.DATA_DIR)
 
     # Generate suppliers
-    suppliers_df = suppliers(Config.NUM_SUPPLIERS)
+    suppliers_df = suppliers(config.NUM_SUPPLIERS)
 
     # Generate products
-    products_df = products(Config.NUM_PRODUCTS, Config.DATA_DIR, suppliers_df)
+    products_df = products(config.NUM_PRODUCTS, config.DATA_DIR, suppliers_df)
 
     # Generate Store
-    store_df = store(Config.NUM_STORES, Config.DATA_DIR)
+    store_df = store(config.NUM_STORES, config.DATA_DIR)
 
     # Generate Warehouse
-    warehouse_df = warehouse(Config.NUM_WAREHOUSES)
+    warehouse_df = warehouse(config.NUM_WAREHOUSES)
 
     # Generate inventory
-    inventory(Config.DAYS, Config.DATA_DIR, Config.START_DATE, products_df, warehouse_df)
+    inventory(config.DAYS, config.DATA_DIR, config.START_DATE, products_df, warehouse_df)
 
     # Generate Shipments
-    shipment(Config.DAYS, Config.MAX_SHIPMENTS_PER_DAY, Config.DATA_DIR, Config.START_DATE, store_df, warehouse_df)
+    shipment(config.DAYS, config.MAX_SHIPMENTS_PER_DAY, config.DATA_DIR, config.START_DATE, store_df, warehouse_df)
